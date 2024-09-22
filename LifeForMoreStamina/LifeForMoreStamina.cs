@@ -1,9 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Timers;
 using Exiled.API.Enums;
 using Exiled.API.Features;
+using Player = Exiled.API.Features.Player;
 
 namespace LifeForMoreStamina
 {
@@ -18,21 +17,29 @@ namespace LifeForMoreStamina
 
         public override void OnEnabled()
         {
-            staminaCheckTimer = new Timer(100);
-            staminaCheckTimer.Elapsed += OnStaminaCheck;
-            staminaCheckTimer.Start();
-
+            Exiled.Events.Handlers.Server.RoundStarted += OnRoundStarted;
+            Exiled.Events.Handlers.Server.RestartingRound += OnRestartingRound;
             base.OnEnabled();
         }
         public override void OnDisabled()
+        {
+            Exiled.Events.Handlers.Server.RoundStarted -= OnRoundStarted;
+            Exiled.Events.Handlers.Server.RestartingRound -= OnRestartingRound;
+            base.OnDisabled();
+        }
+        private void OnRoundStarted()
+        {
+            staminaCheckTimer = new Timer(100);
+            staminaCheckTimer.Elapsed += OnStaminaCheck;
+            staminaCheckTimer.Start();
+        }
+        private void OnRestartingRound()
         {
             if (staminaCheckTimer != null)
             {
                 staminaCheckTimer.Stop();
                 staminaCheckTimer.Dispose();
             }
-
-            base.OnDisabled();
         }
         private void OnStaminaCheck(object sender, ElapsedEventArgs e)
         {
@@ -47,6 +54,11 @@ namespace LifeForMoreStamina
                         if (player.Stamina == Config.StaminaAdded)
                         {
                             player.Health -= Config.HpRemoved;
+
+                            if (player.Health < 0.8)
+                            {
+                                player.EnableEffect(EffectType.Bleeding, 1, 1);
+                            }
                         }
                     }
                 }
