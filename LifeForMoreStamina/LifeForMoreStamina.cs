@@ -2,6 +2,7 @@
 using System.Timers;
 using Exiled.API.Enums;
 using Exiled.API.Features;
+using Exiled.Events.EventArgs.Player;
 using Player = Exiled.API.Features.Player;
 
 namespace LifeForMoreStamina
@@ -19,12 +20,14 @@ namespace LifeForMoreStamina
         {
             Exiled.Events.Handlers.Server.RoundStarted += OnRoundStarted;
             Exiled.Events.Handlers.Server.RestartingRound += OnRestartingRound;
+            Exiled.Events.Handlers.Player.Hurting += OnHurting;
             base.OnEnabled();
         }
         public override void OnDisabled()
         {
             Exiled.Events.Handlers.Server.RoundStarted -= OnRoundStarted;
             Exiled.Events.Handlers.Server.RestartingRound -= OnRestartingRound;
+            Exiled.Events.Handlers.Player.Hurting -= OnHurting;
             base.OnDisabled();
         }
         private void OnRoundStarted()
@@ -55,12 +58,30 @@ namespace LifeForMoreStamina
                         {
                             player.Health -= Config.HpRemoved;
 
-                            if (player.Health < 0.8)
+                            if (Config.VisualEffect)
                             {
-                                player.EnableEffect(EffectType.Bleeding, 1, 1);
+                                player.EnableEffect(EffectType.Bleeding, 1, 2);
+                            }
+                            if (!Config.VisualEffect && Config.KillOnZeroHp && player.Health < 0.8)
+                            {
+                                player.EnableEffect(EffectType.Bleeding, 1, 2);
                             }
                         }
                     }
+                }
+            }
+        }
+        private void OnHurting(HurtingEventArgs ev)
+        {
+            if (ev.DamageHandler.Type == DamageType.Bleeding)
+            {
+                if (Config.VisualEffect)
+                {
+                    ev.IsAllowed = false;
+                }
+                if (Config.KillOnZeroHp && ev.Player.Health < 0.8)
+                {
+                    ev.IsAllowed = true;
                 }
             }
         }
